@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(perception)
+project(part_perception)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -173,9 +173,9 @@ link_directories(${catkin_LIBRARY_DIRS})
 #   ${catkin_LIBRARIES}
 # )
 
-add_executable(move_arm move_arm.cpp)
-target_link_libraries(move_arm ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-install(TARGETS move_arm DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+#add_executable(move_arm move_arm.cpp)
+#target_link_libraries(move_arm ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+#install(TARGETS move_arm DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 add_executable(parts_belt parts_belt.cpp)
 target_link_libraries(parts_belt ${catkin_LIBRARIES})
