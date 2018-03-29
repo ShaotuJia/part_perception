@@ -177,8 +177,8 @@ link_directories(${catkin_LIBRARY_DIRS})
 #target_link_libraries(move_arm ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 #install(TARGETS move_arm DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-add_executable(parts_belt parts_belt.cpp)
-target_link_libraries(parts_belt ${catkin_LIBRARIES})
+add_executable(belt_inventory main.cpp parts_belt.cpp)
+target_link_libraries(belt_inventory ${catkin_LIBRARIES})
 
 #############
 ## Install ##

@@ -40,10 +40,10 @@ void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg)
 	double belt_velo = 0;
 
 	// time difference between new_timestamp and old_timestamp for same part
-	auto time_stamp_diff = 0;
+	double time_stamp_diff = 0;
 
 	// y - position difference between new_y_poistion and old_y_position
-	auto position_diff = 0;
+	double position_diff = 0;
 
 	// find same part in coming msg
 	for (auto possible_part : msg->transforms) {
@@ -53,16 +53,27 @@ void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg)
 		} else {
 
 				// time = stamp.sec + stamp.nsec/(10^9)
-				auto possible_part_timestamp = possible_part.header.stamp.sec \
+				// auto possible_part_timestamp = possible_part.header.stamp.sec \
 						+ possible_part.header.stamp.nsec/(pow(10, 9));
 
-				auto old_last_element_timestamp = old_last_element.header.stamp.sec \
+				auto possible_part_timestamp = possible_part.header.stamp.toSec();
+
+				// auto old_last_element_timestamp = old_last_element.header.stamp.sec \
 						+ old_last_element.header.stamp.nsec/(pow(10, 9));
+				auto old_last_element_timestamp = old_last_element.header.stamp.toSec();
 
 				// set up the time stamp difference
 				time_stamp_diff = possible_part_timestamp - old_last_element_timestamp;
 
-				ROS_INFO_STREAM("time diffference = " << time_stamp_diff);
+#if 0
+
+				ROS_INFO_STREAM("old_last_element_timestamp = " << old_last_element_timestamp);
+
+				ROS_INFO_STREAM("possible_part_timestamp = " << possible_part_timestamp);
+
+				ROS_INFO_STREAM("time difference = " << time_stamp_diff);
+
+#endif
 
 				if (time_stamp_diff == 0) {
 
@@ -72,7 +83,26 @@ void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg)
 					position_diff = possible_part.transform.translation.y \
 							- old_last_element.transform.translation.y;
 
-					belt_velo = position_diff / time_stamp_diff;
+					 current_belt_velo = position_diff / time_stamp_diff;	// update current belt_velo
+					 current_time_stamp_sec = possible_part.header.stamp.sec;			// update current time stamp
+					 current_time_stamp_nsec = possible_part.header.stamp.nsec;
+
+					 // compute average belt velocity
+					 accumulate_velo += current_belt_velo;
+					 velo_measure_times += 1;
+					 average_belt_velo = accumulate_velo/velo_measure_times;
+
+
+#if 0
+
+					ROS_INFO_STREAM("old_last_element_position: [" << old_last_element.transform.translation.x \
+							<< " , " << old_last_element.transform.translation.y << " , " \
+							<< old_last_element.transform.translation.z);
+
+					ROS_INFO_STREAM("possible_part_position: [" << possible_part.transform.translation.x \
+							<< " , " << possible_part.transform.translation.y << " , " \
+							<< possible_part.transform.translation.z);
+#endif
 
 					ROS_INFO_STREAM("Belt_velo = " <<  belt_velo);
 
@@ -121,20 +151,53 @@ void Belt_Inventory:: part_detect(const tf2_msgs::TFMessage::ConstPtr& msg) {
 
 }
 
-#if 0
+
 /*
  * @brief This function removes the first part that is far away on the conveyer belt
  * @param distance; the distance between logical_camera_1 and part
  * @return void; but update belt_inventory vector
  */
-void remove_part_from_belt(const double& distance) {
-	if (belt_inventory.begin() > distance) {
+void Belt_Inventory::remove_part_from_belt(const double& distance) {
+
+	// get the first element(farest element) from belt_inventory
+	auto far_element = belt_inventory.begin();
+
+
+	if (far_element->transform.translation.y > distance) {
 		belt_inventory.erase(belt_inventory.begin());
+		ROS_INFO_STREAM("REMOVE FAR Part");
 	}
 
 }
 
-#endif
+/**
+ * @breif update part position in belt_inventory based on current belt_velo
+ * @param  msg the new message from rostopic /tf
+ * @detail
+ * 1. compute y - position in current time
+ * 2. update y - position and timestamp in belt_inventory vector
+ * 3. remove part out of range (y - position exceed far_distance)
+ *
+ */
+void Belt_Inventory::update_belt_inventory(std::vector<geometry_msgs::TransformStamped> inventory_belt) {
+
+	 auto Time = ros::Time::now();	// current time
+
+	 for (auto& part : inventory_belt) {
+
+		 // compute the time difference
+		 double duration = Time.toSec() - part.header.stamp.toSec();
+
+		 // update part position
+		 part.transform.translation.y -= fabs(average_belt_velo) * duration;
+
+	 }
+
+	 // remove the part that cannot be picked up by UR10
+	 remove_part_from_belt(far_distance);
+
+}
+
 
 
 

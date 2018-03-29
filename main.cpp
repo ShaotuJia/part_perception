@@ -7,7 +7,7 @@
 
 
 #include <ros/ros.h>
-#include "parts_belt.h"
+#include "include/parts_belt.h"
 
 
 int main(int argc, char **argv) {
@@ -16,12 +16,14 @@ int main(int argc, char **argv) {
 	ros::init(argc, argv, "parts_belt");
 
 	// set nodehandle for this program
-	ros::NodeHandle n;
+	ros::NodeHandle node;
 
-	//
+	// instance of class Belt_Inventory
+	Belt_Inventory belt_inventory(node);
+
 
 	// subscribe topic /tf
-	ros::Subscriber sub = n.subscribe("/tf", 1000, part_detect);
+	ros::Subscriber sub = node.subscribe("/tf", 1000, &Belt_Inventory::part_detect, &belt_inventory);
 
 	// subscribe topic /tf and publish belt velocity
 	// if (!belt_inventory.empty()) {
