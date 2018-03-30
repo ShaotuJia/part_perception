@@ -18,6 +18,18 @@
 
 
 
+/*
+ * @breif this constructor function maintain belt_inventory and publish topic /belt_inventory
+ * 1. receive message from /tf
+ * 2. publish belt_inventory
+ * @param node ros nodehandle
+ */
+explicit Belt_Inventory::Belt_Inventory(ros::NodeHandle& node) : node(node) {
+
+
+}
+
+
 // callback function to compute belt velocity
 // compute the difference of msg about same part on the belt
 /**
@@ -145,9 +157,12 @@ void Belt_Inventory:: part_detect(const tf2_msgs::TFMessage::ConstPtr& msg) {
 		}
 	}
 
+#if 0
+
 	if (!belt_inventory.empty()) {
 		belt_velo_compute(msg);
 	}
+#endif
 
 }
 
@@ -179,7 +194,7 @@ void Belt_Inventory::remove_part_from_belt(const double& distance) {
  * 3. remove part out of range (y - position exceed far_distance)
  *
  */
-void Belt_Inventory::update_belt_inventory(std::vector<geometry_msgs::TransformStamped> inventory_belt) {
+void Belt_Inventory::update_belt_inventory(std::vector<geometry_msgs::TransformStamped>& inventory_belt) {
 
 	 auto Time = ros::Time::now();	// current time
 
@@ -199,6 +214,67 @@ void Belt_Inventory::update_belt_inventory(std::vector<geometry_msgs::TransformS
 }
 
 
+/**
+ * @brief convert data type from std::vector to tf2_msgs
+ */
+tf2_msgs::TFMessage Belt_Inventory::convert_belt_inventory_type_to_publish(const std::vector<geometry_msgs::TransformStamped>& inventory) {
+
+	tf2_msgs::TFMessage_ publish_data;
+	publish_data.transforms = inventory;
+
+
+	return publish_data;
+
+}
+
+
+
+/**
+ * @brief publish belt_inventory vector topic belt_inventory
+ * 1. set up publisher
+ */
+void Belt_Inventory::publish_belt_inventory(const int& freq) {
+
+	belt_inventory_publisher = node.advertise<std::vector<geometry_msgs::TransformStamped>>("belt_inventory", 1000);
+	ros::Rate loop_rate(freq);
+
+	while (ros::ok()) {
+		belt_inventory_publisher.publish(belt_inventory);
+		ros::spinOnce();
+		loop_rate.sleep();
+
+	}
+
+}
+
+/**
+ * @brief combine all functions in this class to build belt inventory
+ * @param msg the new from rostopic /tf
+ * 1. receive msg from /tf topic using callback function
+ * 2. detect part from belt using function 'part_detect'
+ * 3. compute belt_velo using belt_velo_compute if belt_inventory is not empty
+ * 4. remove unpickable part from belt_inventory list using 'remove_part_from_belt'
+ * 5. update the position of part in belt_inventory using 'update_belt_inventory'
+ * 6. publish a topic 'belt_inventory' to ros master
+ *
+ */
+void Belt_Inventory::build_belt_inventory(const tf2_msgs::TFMessage::ConstPtr& msg) {
+
+	// detect part from belt using function 'part_detect'
+	part_detect(msg);
+
+	// compute belt_velo using belt_velo_compute if belt_inventory is not empty
+	if (!belt_inventory.empty()) {
+		belt_velo_compute(msg);
+	}
+
+	// remove unpickable part from belt_inventory list using 'remove_part_from_belt'
+	remove_part_from_belt(farthest_distance);
+
+	// update the position of part in belt_inventory using 'update_belt_inventory'
+	update_belt_inventory(belt_inventory);
+
+}
 
 
 
