@@ -30,14 +30,14 @@ private:
 	double average_belt_velo = 0;	// the average belt velo
 	ros::Publisher belt_inventory_publisher;	// publish belt_inventory as rostopic
 	ros::NodeHandle node;						// the ros node handle
-	ros::Rate publish_rate = 10;				// publish rate 10Hz
+	const int publish_freq = 10;				// publish rate 10Hz
 
 
 	// const tf2_msgs::TFMessage::ConstPtr& tf_msg;	// the msg receive from /tf topic
 
 
 public:
-	explicit Belt_Inventory(ros::NodeHandle& node);
+	explicit Belt_Inventory();
 
 	void belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg);
 	void part_detect(const tf2_msgs::TFMessage::ConstPtr& msg);

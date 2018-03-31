@@ -24,8 +24,12 @@
  * 2. publish belt_inventory
  * @param node ros nodehandle
  */
-explicit Belt_Inventory::Belt_Inventory(ros::NodeHandle& node) : node(node) {
+Belt_Inventory::Belt_Inventory() {
 
+	// subscribe /tf and call functions via function build_belt_inventory
+	ros::Subscriber tf_sub = node.subscribe("/tf", 1000, &Belt_Inventory::build_belt_inventory, this);
+
+	// ros::spin();
 
 }
 
@@ -42,8 +46,9 @@ explicit Belt_Inventory::Belt_Inventory(ros::NodeHandle& node) : node(node) {
  */
 void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg) {
 
-	// ROS_INFO_STREAM("belt_velo_compute start !!" );
 
+	// send log message
+	ROS_INFO_STREAM("belt_velo_compute start !!" );
 
 	// get last element from old vector belt_inventory
 	auto old_last_element = belt_inventory.back();
@@ -131,6 +136,10 @@ void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg)
 // from other transfromation in /tf
 void Belt_Inventory:: part_detect(const tf2_msgs::TFMessage::ConstPtr& msg) {
 
+
+	// send log message
+	ROS_INFO_STREAM("part_detect function invoked !!");
+
 	for (auto possible_part : msg->transforms) {
 
 		bool on_inventory = false;		// the part whether exist on belt_inventory
@@ -196,7 +205,11 @@ void Belt_Inventory::remove_part_from_belt(const double& distance) {
  */
 void Belt_Inventory::update_belt_inventory(std::vector<geometry_msgs::TransformStamped>& inventory_belt) {
 
-	 auto Time = ros::Time::now();	// current time
+
+	// send log message
+	ROS_INFO_STREAM("update_belt_inventory function invoked !!");
+
+	auto Time = ros::Time::now();	// current time
 
 	 for (auto& part : inventory_belt) {
 
@@ -209,7 +222,7 @@ void Belt_Inventory::update_belt_inventory(std::vector<geometry_msgs::TransformS
 	 }
 
 	 // remove the part that cannot be picked up by UR10
-	 remove_part_from_belt(far_distance);
+	// remove_part_from_belt(farthest_distance);
 
 }
 
@@ -219,7 +232,8 @@ void Belt_Inventory::update_belt_inventory(std::vector<geometry_msgs::TransformS
  */
 tf2_msgs::TFMessage Belt_Inventory::convert_belt_inventory_type_to_publish(const std::vector<geometry_msgs::TransformStamped>& inventory) {
 
-	tf2_msgs::TFMessage_ publish_data;
+	tf2_msgs::TFMessage publish_data;
+
 	publish_data.transforms = inventory;
 
 
@@ -229,23 +243,38 @@ tf2_msgs::TFMessage Belt_Inventory::convert_belt_inventory_type_to_publish(const
 
 
 
+
 /**
  * @brief publish belt_inventory vector topic belt_inventory
  * 1. set up publisher
  */
 void Belt_Inventory::publish_belt_inventory(const int& freq) {
 
-	belt_inventory_publisher = node.advertise<std::vector<geometry_msgs::TransformStamped>>("belt_inventory", 1000);
+	// belt_inventory_publisher = node.advertise<std::vector<geometry_msgs::TransformStamped>>("belt_inventory", 1000);
+
+
+	belt_inventory_publisher = node.advertise<tf2_msgs::TFMessage>("belt_inventory", 1000);
+
 	ros::Rate loop_rate(freq);
 
-	while (ros::ok()) {
-		belt_inventory_publisher.publish(belt_inventory);
+	// send log message
+	ROS_INFO_STREAM(" publish_belt_inventory function Invoke !!");
+
+	// convert belt_inventory to output type tf2_message
+	tf2_msgs::TFMessage publish_data = convert_belt_inventory_type_to_publish(belt_inventory);
+
+	 while (ros::ok()) {
+		// belt_inventory_publisher.publish(belt_inventory);
+
+		 belt_inventory_publisher.publish(publish_data);
+
 		ros::spinOnce();
 		loop_rate.sleep();
 
-	}
+	 }
 
 }
+
 
 /**
  * @brief combine all functions in this class to build belt inventory
@@ -273,6 +302,9 @@ void Belt_Inventory::build_belt_inventory(const tf2_msgs::TFMessage::ConstPtr& m
 
 	// update the position of part in belt_inventory using 'update_belt_inventory'
 	update_belt_inventory(belt_inventory);
+
+	// publish belt_inventory vector
+	// publish_belt_inventory(publish_freq);
 
 }
 
