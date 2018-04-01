@@ -28,6 +28,8 @@ int main(int argc, char **argv) {
 	// create ros server
 	ros::ServiceServer server = node.advertiseService("add_two_ints", &Belt_Inventory::add, &belt_inventory);
 
+	ros::ServiceServer inventory_server = node.advertiseService("/ariac/query_part", &Belt_Inventory::find_parts, &belt_inventory);
+
 	ros::spin();
 }
 

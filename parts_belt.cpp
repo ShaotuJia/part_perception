@@ -359,7 +359,6 @@ bool Belt_Inventory::find_parts(part_perception::Inventory_Predication::Request&
 	// desired parts
 	tf2_msgs::TFMessage desired_parts;
 
-#if 0
 
 	for (auto it = predicate_belt_inventory.transforms.begin(); \
 			it != predicate_belt_inventory.transforms.end(); it ++) {
@@ -373,19 +372,23 @@ bool Belt_Inventory::find_parts(part_perception::Inventory_Predication::Request&
 		if (it ->transform.translation.y > farthest_distance && \
 				is_type(it ->child_frame_id, req.part_type)) {
 
+			//assign query time to part info in future time
+			it ->header.stamp = req.future_time;
+
+			// push valid part to desired_part vector for output
 			desired_parts.transforms.push_back(*it);
 		}
 
 	}
 
 	if (!desired_parts.transforms.empty()) {
-		res.part_info = desired_parts;
+		res.parts_info = desired_parts;
 		res.success = true;
+		res.message = "Find part " + req.part_type + "! \n";
 	} else {
 		res.success = false;
+		res.message = "Cannot find part" + req.part_type + "! \n";
 	}
-#endif
-
 
 	return true;
 
