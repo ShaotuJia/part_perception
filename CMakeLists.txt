@@ -24,6 +24,7 @@ find_package(catkin REQUIRED
     geometric_shapes
     moveit_visual_tools
     std_msgs
+    tf
     tf2
     geometry_msgs
     message_generation
@@ -180,9 +181,9 @@ link_directories(${catkin_LIBRARY_DIRS})
 #target_link_libraries(move_arm ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 #install(TARGETS move_arm DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-add_executable(belt_inventory main.cpp parts_belt.cpp)
-target_link_libraries(belt_inventory ${catkin_LIBRARIES})
-add_dependencies(belt_inventory part_perception_generate_messages_cpp)
+add_executable(detect_part main.cpp parts_belt.cpp incorrect_pos.cpp)
+target_link_libraries(detect_part ${catkin_LIBRARIES})
+add_dependencies(detect_part part_perception_generate_messages_cpp)
 
 #############
 ## Install ##
