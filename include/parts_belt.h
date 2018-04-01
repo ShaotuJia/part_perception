@@ -12,6 +12,7 @@
 #include "geometry_msgs/TransformStamped.h"
 #include "std_msgs/Header.h"
 #include "std_msgs/Time.h"
+#include "part_perception/Inventory_Predication.h"
 
 
 
@@ -34,10 +35,7 @@ private:
 
 	tf2_msgs::TFMessage current_belt_inventory;	// predicated belt inventory
 
-	// tf2_msgs::TFMessage::ConstPtr& recieved_msg;							// recieved message
-
-
-	// const tf2_msgs::TFMessage::ConstPtr& tf_msg;	// the msg receive from /tf topic
+	tf2_msgs::TFMessage predicate_belt_inventory;	// belt_inventory predication in future time
 
 
 public:

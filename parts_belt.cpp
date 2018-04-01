@@ -15,6 +15,7 @@
 #include "geometry_msgs/TransformStamped.h"
 #include "std_msgs/Header.h"
 #include "include/parts_belt.h"
+#include "part_perception/Inventory_Predication.h"
 
 
 

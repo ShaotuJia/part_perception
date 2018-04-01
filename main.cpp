@@ -8,6 +8,7 @@
 
 #include <ros/ros.h>
 #include "include/parts_belt.h"
+#include "part_perception/Inventory_Predication.h"
 
 
 int main(int argc, char **argv) {
