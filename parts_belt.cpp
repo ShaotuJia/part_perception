@@ -28,7 +28,7 @@
  */
 Belt_Inventory::Belt_Inventory(ros::NodeHandle node):node(node) {
 
-	belt_inventory_publisher = node.advertise<tf2_msgs::TFMessage>("belt_inventory", 1000);
+	belt_inventory_publisher = node.advertise<tf2_msgs::TFMessage>("/ariac/belt_inventory", 1000);
 
 	// publish service server
 	// predicate_inventory = node.advertiseService("part_predication", find_parts);

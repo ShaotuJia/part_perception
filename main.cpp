@@ -26,9 +26,9 @@ int main(int argc, char **argv) {
 	ros::Subscriber sub = node.subscribe("/tf", 1000, &Belt_Inventory::build_belt_inventory, &belt_inventory);
 
 	// create ros server
-	ros::ServiceServer server = node.advertiseService("add_two_ints", &Belt_Inventory::add, &belt_inventory);
+	// ros::ServiceServer server = node.advertiseService("add_two_ints", &Belt_Inventory::add, &belt_inventory);
 
-	ros::ServiceServer inventory_server = node.advertiseService("/ariac/query_part", &Belt_Inventory::find_parts, &belt_inventory);
+	ros::ServiceServer inventory_server = node.advertiseService("/ariac/query_belt_part", &Belt_Inventory::find_parts, &belt_inventory);
 
 	ros::spin();
 }
