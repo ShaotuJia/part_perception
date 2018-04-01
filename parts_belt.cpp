@@ -24,10 +24,14 @@
  * 2. publish belt_inventory
  * @param node ros nodehandle
  */
-Belt_Inventory::Belt_Inventory() {
+Belt_Inventory::Belt_Inventory(ros::NodeHandle node):node(node) {
+
+	belt_inventory_publisher = node.advertise<tf2_msgs::TFMessage>("belt_inventory", 1000);
+
+	// set nodehandle for this program
 
 	// subscribe /tf and call functions via function build_belt_inventory
-	ros::Subscriber tf_sub = node.subscribe("/tf", 1000, &Belt_Inventory::build_belt_inventory, this);
+	// ros::Subscriber tf_sub = node.subscribe("/tf", 1000, &Belt_Inventory::build_belt_inventory, this);
 
 	// ros::spin();
 
@@ -48,7 +52,7 @@ void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg)
 
 
 	// send log message
-	ROS_INFO_STREAM("belt_velo_compute start !!" );
+	// ROS_INFO_STREAM("belt_velo_compute start !!" );
 
 	// get last element from old vector belt_inventory
 	auto old_last_element = belt_inventory.back();
@@ -70,14 +74,14 @@ void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg)
 		} else {
 
 				// time = stamp.sec + stamp.nsec/(10^9)
-				// auto possible_part_timestamp = possible_part.header.stamp.sec \
+				auto possible_part_timestamp = possible_part.header.stamp.sec \
 						+ possible_part.header.stamp.nsec/(pow(10, 9));
 
-				auto possible_part_timestamp = possible_part.header.stamp.toSec();
+				// auto possible_part_timestamp = possible_part.header.stamp.toSec();
 
-				// auto old_last_element_timestamp = old_last_element.header.stamp.sec \
+				auto old_last_element_timestamp = old_last_element.header.stamp.sec \
 						+ old_last_element.header.stamp.nsec/(pow(10, 9));
-				auto old_last_element_timestamp = old_last_element.header.stamp.toSec();
+				// auto old_last_element_timestamp = old_last_element.header.stamp.toSec();
 
 				// set up the time stamp difference
 				time_stamp_diff = possible_part_timestamp - old_last_element_timestamp;
@@ -89,8 +93,8 @@ void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg)
 				ROS_INFO_STREAM("possible_part_timestamp = " << possible_part_timestamp);
 
 				ROS_INFO_STREAM("time difference = " << time_stamp_diff);
-
 #endif
+
 
 				if (time_stamp_diff == 0) {
 
@@ -109,7 +113,6 @@ void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg)
 					 velo_measure_times += 1;
 					 average_belt_velo = accumulate_velo/velo_measure_times;
 
-
 #if 0
 
 					ROS_INFO_STREAM("old_last_element_position: [" << old_last_element.transform.translation.x \
@@ -119,9 +122,10 @@ void Belt_Inventory::belt_velo_compute(const tf2_msgs::TFMessage::ConstPtr& msg)
 					ROS_INFO_STREAM("possible_part_position: [" << possible_part.transform.translation.x \
 							<< " , " << possible_part.transform.translation.y << " , " \
 							<< possible_part.transform.translation.z);
-#endif
 
-					ROS_INFO_STREAM("Belt_velo = " <<  belt_velo);
+
+					ROS_INFO_STREAM("Average_Belt_velo = " <<  average_belt_velo);
+#endif
 
 					// update last element in belt_inventory
 					belt_inventory.back() = possible_part;
@@ -138,7 +142,7 @@ void Belt_Inventory:: part_detect(const tf2_msgs::TFMessage::ConstPtr& msg) {
 
 
 	// send log message
-	ROS_INFO_STREAM("part_detect function invoked !!");
+	// ROS_INFO_STREAM("part_detect function invoked !!");
 
 	for (auto possible_part : msg->transforms) {
 
@@ -167,11 +171,12 @@ void Belt_Inventory:: part_detect(const tf2_msgs::TFMessage::ConstPtr& msg) {
 	}
 
 #if 0
-
+	// compute belt_velo
 	if (!belt_inventory.empty()) {
 		belt_velo_compute(msg);
 	}
 #endif
+
 
 }
 
@@ -183,16 +188,63 @@ void Belt_Inventory:: part_detect(const tf2_msgs::TFMessage::ConstPtr& msg) {
  */
 void Belt_Inventory::remove_part_from_belt(const double& distance) {
 
+	// ROS_INFO_STREAM("remove_part_from_belt invoked !!");
+
 	// get the first element(farest element) from belt_inventory
 	auto far_element = belt_inventory.begin();
 
+	auto time = ros::Time::now();
 
-	if (far_element->transform.translation.y > distance) {
-		belt_inventory.erase(belt_inventory.begin());
-		ROS_INFO_STREAM("REMOVE FAR Part");
-	}
+	auto predicate_far_element = predicate_part_position(*far_element, time);
+
+	if (predicate_far_element.transform.translation.y < distance) {
+
+			ROS_INFO_STREAM("Far predicate part position y = " << \
+					predicate_far_element.transform.translation.y);
+
+			belt_inventory.erase(belt_inventory.begin());
+			ROS_INFO_STREAM("REMOVE FAR Part");
+		}
 
 }
+
+/**
+ * @brief if part out of range return true; else return false
+ */
+bool Belt_Inventory::out_of_range(const geometry_msgs::TransformStamped& predicate_part) {
+
+	if (predicate_part.transform.translation.y < farthest_distance) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+/**
+ * @breif predicate the part position on the belt
+ * @param part the info of part
+ * @param time the time you want to need the position of part
+ * @return predicated position and timestamp
+ */
+
+geometry_msgs::TransformStamped Belt_Inventory::predicate_part_position(const geometry_msgs::TransformStamped& part, ros::Time time) {
+
+	// compute the time difference
+	double duration = time.toSec() - part.header.stamp.toSec();
+
+	// predicate_part
+	geometry_msgs::TransformStamped predicate_part;
+
+ 	predicate_part.transform.translation.y = part.transform.translation.y - (fabs(average_belt_velo) * duration);
+
+ 	return predicate_part;
+}
+
+
+
+
+
 
 /**
  * @breif update part position in belt_inventory based on current belt_velo
@@ -207,22 +259,34 @@ void Belt_Inventory::update_belt_inventory(std::vector<geometry_msgs::TransformS
 
 
 	// send log message
-	ROS_INFO_STREAM("update_belt_inventory function invoked !!");
+	// ROS_INFO_STREAM("update_belt_inventory function invoked !!");
 
 	auto Time = ros::Time::now();	// current time
 
-	 for (auto& part : inventory_belt) {
+	// assign belt_inventory to predicate_belt_inventory
+	current_belt_inventory = convert_belt_inventory_type_to_publish(inventory_belt);
+
+	// geometry_msgs::TransformStamped temp_part_info;
+
+	 for (auto& part : current_belt_inventory.transforms) {
 
 		 // compute the time difference
 		 double duration = Time.toSec() - part.header.stamp.toSec();
 
-		 // update part position
-		 part.transform.translation.y -= fabs(average_belt_velo) * duration;
+		 // send messge
+		 ROS_INFO_STREAM("duration = " << duration);
 
+		 // update time
+		 // part.header.stamp = Time;
+		 part.header.stamp = Time;
+
+
+		 // update part position
+		 part.transform.translation.y = part.transform.translation.y - (fabs(average_belt_velo) * duration);
+
+		 // push temp_part
 	 }
 
-	 // remove the part that cannot be picked up by UR10
-	// remove_part_from_belt(farthest_distance);
 
 }
 
@@ -250,30 +314,27 @@ tf2_msgs::TFMessage Belt_Inventory::convert_belt_inventory_type_to_publish(const
  */
 void Belt_Inventory::publish_belt_inventory(const int& freq) {
 
-	// belt_inventory_publisher = node.advertise<std::vector<geometry_msgs::TransformStamped>>("belt_inventory", 1000);
-
-
-	belt_inventory_publisher = node.advertise<tf2_msgs::TFMessage>("belt_inventory", 1000);
-
-	ros::Rate loop_rate(freq);
-
 	// send log message
-	ROS_INFO_STREAM(" publish_belt_inventory function Invoke !!");
+	// ROS_INFO_STREAM(" publish_belt_inventory function Invoke !!");
 
 	// convert belt_inventory to output type tf2_message
-	tf2_msgs::TFMessage publish_data = convert_belt_inventory_type_to_publish(belt_inventory);
+	// tf2_msgs::TFMessage publish_data = convert_belt_inventory_type_to_publish(belt_inventory);
 
-	 while (ros::ok()) {
-		// belt_inventory_publisher.publish(belt_inventory);
+	// output size of belt_inventory vector
+	ROS_INFO_STREAM("Publish belt_inventory size = " << belt_inventory.size());
 
-		 belt_inventory_publisher.publish(publish_data);
+	// output size of publish data
+	ROS_INFO_STREAM("Publish Size of publish data = " << current_belt_inventory.transforms.size());
 
-		ros::spinOnce();
-		loop_rate.sleep();
 
-	 }
+	if (!current_belt_inventory.transforms.empty()) {
+			 belt_inventory_publisher.publish(current_belt_inventory);
+	}
+
 
 }
+
+
 
 
 /**
@@ -289,22 +350,28 @@ void Belt_Inventory::publish_belt_inventory(const int& freq) {
  */
 void Belt_Inventory::build_belt_inventory(const tf2_msgs::TFMessage::ConstPtr& msg) {
 
+
+	auto recieved_msg = msg;
+
 	// detect part from belt using function 'part_detect'
-	part_detect(msg);
+	part_detect(recieved_msg);
 
-	// compute belt_velo using belt_velo_compute if belt_inventory is not empty
+	// if belt_inventory is not empty
 	if (!belt_inventory.empty()) {
-		belt_velo_compute(msg);
+
+		// compute belt_velo
+		belt_velo_compute(recieved_msg);
+
+		// update the position of part in belt_inventory using 'update_belt_inventory'
+		update_belt_inventory(belt_inventory);
+
+		// remove unpickable part from belt_inventory list using 'remove_part_from_belt'
+		remove_part_from_belt(farthest_distance);
+
+		 // publish belt_inventory vector
+		publish_belt_inventory(publish_freq);
+
 	}
-
-	// remove unpickable part from belt_inventory list using 'remove_part_from_belt'
-	remove_part_from_belt(farthest_distance);
-
-	// update the position of part in belt_inventory using 'update_belt_inventory'
-	update_belt_inventory(belt_inventory);
-
-	// publish belt_inventory vector
-	// publish_belt_inventory(publish_freq);
 
 }
 
