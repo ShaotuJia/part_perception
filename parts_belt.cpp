@@ -16,18 +16,23 @@
 #include "std_msgs/Header.h"
 #include "include/parts_belt.h"
 #include "part_perception/Inventory_Predication.h"
+#include "part_perception/TwoInts.h"
 
 
 
 /*
  * @breif this constructor function maintain belt_inventory and publish topic /belt_inventory
- * 1. receive message from /tf
- * 2. publish belt_inventory
+ * 1. initialize publisher to publish current_belt_inventory
+ * 2. initialize server to predicate desired part position
  * @param node ros nodehandle
  */
 Belt_Inventory::Belt_Inventory(ros::NodeHandle node):node(node) {
 
 	belt_inventory_publisher = node.advertise<tf2_msgs::TFMessage>("belt_inventory", 1000);
+
+	// publish service server
+	// predicate_inventory = node.advertiseService("part_predication", find_parts);
+	// add_server = node.advertiseService("add_two_ints", add);
 
 }
 
@@ -206,9 +211,6 @@ geometry_msgs::TransformStamped Belt_Inventory::predicate_part_position(const ge
 
 
 
-
-
-
 /**
  * @breif update part position in belt_inventory based on current belt_velo
  * @param  msg the new message from rostopic /tf
@@ -226,7 +228,7 @@ void Belt_Inventory::update_belt_inventory(std::vector<geometry_msgs::TransformS
 
 	auto Time = ros::Time::now();	// current time
 
-	// assign belt_inventory to predicate_belt_inventory
+	// assign belt_inventory to current_belt_inventory
 	current_belt_inventory = convert_belt_inventory_type_to_publish(inventory_belt);
 
 	// geometry_msgs::TransformStamped temp_part_info;
@@ -338,10 +340,83 @@ void Belt_Inventory::build_belt_inventory(const tf2_msgs::TFMessage::ConstPtr& m
 		current_belt_inventory.transforms.clear();
 	}
 
+
+	// publish service server
+	// predicate_inventory = node.advertiseService("part_predication", find_parts);
+	// add_server = node.advertiseService("add_two_ints", add);
+
 }
 
+/**
+ * @brief find desired part in belt_inventory and predicate its future position
+ */
+bool Belt_Inventory::find_parts(part_perception::Inventory_Predication::Request& req, \
+		part_perception::Inventory_Predication::Response& res) {
+
+	// assign belt_inventory to predicate_belt_inventory
+	predicate_belt_inventory = convert_belt_inventory_type_to_publish(belt_inventory);
+
+	// desired parts
+	tf2_msgs::TFMessage desired_parts;
+
+#if 0
+
+	for (auto it = predicate_belt_inventory.transforms.begin(); \
+			it != predicate_belt_inventory.transforms.end(); it ++) {
+
+		// the time difference between future time and part timestamp
+		double time_diff = req.future_time.toSec() - it->header.stamp.toSec();
+
+		it ->transform.translation.y -= (fabs(average_belt_velo) * time_diff);
+
+		// if the predicate y - position bigger than farthest distance, keep this element
+		if (it ->transform.translation.y > farthest_distance && \
+				is_type(it ->child_frame_id, req.part_type)) {
+
+			desired_parts.transforms.push_back(*it);
+		}
+
+	}
+
+	if (!desired_parts.transforms.empty()) {
+		res.part_info = desired_parts;
+		res.success = true;
+	} else {
+		res.success = false;
+	}
+#endif
 
 
+	return true;
 
+}
 
+/**
+ * @brief check if the part is desired part type
+ * @param part_name The full name of part
+ * @param part_type The name of desired type
+ * @return true if the part is desired part; else return false
+ */
+bool Belt_Inventory::is_type(std::string part_name, std::string part_type) {
 
+	ROS_INFO_STREAM("part_name: " << part_name);
+	ROS_INFO_STREAM("part_type: " << part_type);
+
+	if (part_name.find(part_type) != std::string::npos) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * !!! Test Service
+ */
+bool Belt_Inventory::add(part_perception::TwoInts::Request  &req,
+		part_perception::TwoInts::Response &res)
+{
+  res.sum = req.a + req.b;
+  ROS_INFO("request: x=%ld, y=%ld", (long int)req.a, (long int)req.b);
+  ROS_INFO("  sending back response: [%ld]", (long int)res.sum);
+  return true;
+}
