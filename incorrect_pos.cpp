@@ -13,6 +13,7 @@
 #include "std_msgs/Header.h"
 #include "include/incorrect_pos.h"
 #include "osrf_gear/Order.h"
+#include "part_perception/Incorrect_Part.h"
 
 
 
@@ -56,15 +57,19 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 
  				// auto temp_part = convert_pos(possible_part, agv_1_reference_frame);
 
- 				tf::StampedTransform temp_transform;
+				tf::StampedTransform temp_transform;
 
- 				geometry_msgs::TransformStamped temp_part;
+				geometry_msgs::TransformStamped temp_part;
 
- 				listener.lookupTransform(agv_1_reference_frame, possible_part.child_frame_id, ros::Time(0), temp_transform);
+				listener.lookupTransform(agv_1_reference_frame, possible_part.child_frame_id, ros::Time(0), temp_transform);
 
- 				tf::transformStampedTFToMsg(temp_transform, temp_part);
+				tf::transformStampedTFToMsg(temp_transform, temp_part);
+
 
  				incorrect_part_pos_agv_1.transforms.push_back(temp_part);
+
+
+
 
  			}
 
@@ -398,3 +403,39 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 
 
  }
+
+ /**
+  * @brief function of service server to find incorrect part
+  */
+bool Incorrect_Pos_AGV::check_parts_pos(part_perception::Incorrect_Part::Request& req, \
+			part_perception::Incorrect_Part::Response& res) {
+
+
+
+	if (req.find_incorrect_part) {
+		if (server_data.transforms.empty()) {
+			res.message = "All Parts are in Correct Position on AGV_1";
+			res.success = true;
+		} else {
+			res.message = " Find Incorrect Part on AGV 1";
+			res.parts_info = server_data;
+			res.success = false;
+		}
+
+		return true;
+	} else {
+		return false;
+	}
+
+
+	return true;
+}
+
+/**
+ * @breif Obtain data from rostopic /ariac/incorrect_parts_agv_1
+ */
+void Incorrect_Pos_AGV::server_data_call_back(const tf2_msgs::TFMessage::ConstPtr& msg) {
+
+	server_data = *msg;
+
+}

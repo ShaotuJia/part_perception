@@ -81,6 +81,7 @@ add_service_files(
    FILES
    Inventory_Predication.srv
    TwoInts.srv
+   Incorrect_Part.srv
 )
 
 ## Generate actions in the 'action' folder

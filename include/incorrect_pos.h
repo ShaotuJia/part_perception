@@ -18,13 +18,14 @@
 #include "geometry_msgs/Transform.h"
 #include "std_msgs/Header.h"
 #include "osrf_gear/Order.h"
+#include "part_perception/Incorrect_Part.h"
 
 class Incorrect_Pos_AGV {
 private:
 	std::vector<osrf_gear::Order> received_orders;	// recieved orders
 	ros::NodeHandle node;	// ros nodehandle
 	tf2_msgs::TFMessage incorrect_part_pos_agv_1;		// the position of all parts on agv_1
-	tf2_msgs::TFMessage incorrect_part_to_agv_1;
+	// tf2_msgs::TFMessage incorrect_part_to_agv_1;
 	const double translation_tolerance = 0.03;		// the tolerance in translation is 0.03m
 	const double orientation_tolerance = 0.1;		// the tolerance in orientation is 0.1 rad
 
@@ -38,6 +39,11 @@ private:
 
 	std::string which_order;						// order find same possible part
 	std::string which_kit;							// the kit find same possible part
+
+	ros::ServiceServer Incorrect_Part_Server;		// server to query incorrect part in agv_1
+
+	tf2_msgs::TFMessage server_data;				// data for /ariac/check_part_pos_agv_1 server
+
 
 
 
@@ -59,6 +65,11 @@ public:
 
 	bool is_part_in_order(const geometry_msgs::TransformStamped& test_part,\
 			 const std::vector<osrf_gear::Order>& current_received_orders);
+
+	bool check_parts_pos(part_perception::Incorrect_Part::Request& req, \
+			part_perception::Incorrect_Part::Response& res);
+
+	void server_data_call_back(const tf2_msgs::TFMessage::ConstPtr& msg);
 
 };
 

@@ -10,6 +10,7 @@
 #include "include/parts_belt.h"
 #include "include/incorrect_pos.h"
 #include "part_perception/Inventory_Predication.h"
+#include "part_perception/Incorrect_Part.h"
 
 
 int main(int argc, char **argv) {
@@ -35,10 +36,20 @@ int main(int argc, char **argv) {
 	Incorrect_Pos_AGV incorrect_pos_agv(node);
 
 	// subscribe /ariac/order to received order info
-	ros::Subscriber order_sub = node.subscribe("/ariac/orders", 1000, &Incorrect_Pos_AGV::order_callback, &incorrect_pos_agv);
+	ros::Subscriber order_sub = node.subscribe("/ariac/orders", \
+			1000, &Incorrect_Pos_AGV::order_callback, &incorrect_pos_agv);
 
 	// subscribe /tf to invoke all function to detect all incorrect parts on AGV_1
-	ros::Subscriber incorrect_part_sub = node.subscribe("/tf", 1000, &Incorrect_Pos_AGV::incorrect_part_call_back, &incorrect_pos_agv);
+	ros::Subscriber incorrect_part_sub = node.subscribe("/tf", 1000, &Incorrect_Pos_AGV::incorrect_part_call_back,\
+			&incorrect_pos_agv);
+
+	// obtain server data
+	ros::Subscriber server_data_sub = node.subscribe("/ariac/incorrect_parts_agv_1", 1000,\
+			&Incorrect_Pos_AGV::server_data_call_back, &incorrect_pos_agv);
+
+	// create ros server to check part position on AGV_1
+	ros::ServiceServer part_pos_agv_server = node.advertiseService("/ariac/check_part_pos_agv_1", \
+			&Incorrect_Pos_AGV::check_parts_pos, &incorrect_pos_agv);
 
 
 
