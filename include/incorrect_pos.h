@@ -25,7 +25,7 @@ private:
 	std::vector<osrf_gear::Order> received_orders;	// recieved orders
 	ros::NodeHandle node;	// ros nodehandle
 	tf2_msgs::TFMessage incorrect_part_pos_agv_1;		// the position of all parts on agv_1
-	// tf2_msgs::TFMessage incorrect_part_to_agv_1;
+
 	const double translation_tolerance = 0.03;		// the tolerance in translation is 0.03m
 	const double orientation_tolerance = 0.1;		// the tolerance in orientation is 0.1 rad
 
@@ -56,8 +56,7 @@ public:
 	bool is_within_orientation_tolerance(const geometry_msgs::Quaternion& actual_orient, const geometry_msgs::Quaternion& desired_orient);
 	bool is_type(std::string part_name, std::string part_type);
 	void publish_incorrect_part(const int& freq);
-	// geometry_msgs::TransformStamped::Ptr convert_pos(const geometry_msgs::TransformStamped part_pos_logical_2, \
-			std::string reference_frame);
+
 
 	bool convert_pos_to_agv_1(const geometry_msgs::TransformStamped part_pos_logical_2, \
 			std::string reference_frame);

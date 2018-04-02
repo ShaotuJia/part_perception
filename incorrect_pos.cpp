@@ -51,7 +51,7 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
  				&& possible_part.child_frame_id != "logical_camera_2_kit_tray_1_frame" \
  				&& possible_part.child_frame_id != "logical_camera_2_agv1_frame") {
 
-//#if 0
+
  			// if cannot find same part type and position in order, push to incorrect_part_pos_agv_1 vector
  			if (!is_part_in_order(possible_part, received_orders)) {
 
@@ -69,67 +69,20 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
  				incorrect_part_pos_agv_1.transforms.push_back(temp_part);
 
 
-
-
  			}
-
-//#endif
-
-#if 0
- 			// check if the possible_part in correct position based on order
- 			for (auto& order : received_orders) {
-
- 				for (auto& kit : order.kits) {
-
- 					 bool correct_pose = false;  // check if having valid pose
-
- 					for (auto& part : kit.objects) {
-
-						if (is_type(possible_part.child_frame_id, part.type)) {
-
-							// !! convert possible part to relative pos to agv_1
-							auto success_convert = convert_pos_to_agv_1(possible_part, agv_1_reference_frame);
-
-
-							// if (success_convert && is_within_tolerance(part_pos_agv_1.transform, part.pose)) {
-							if (!is_within_tolerance(part_pos_agv_1.transform, part.pose)) {
-
-								incorrect_part_pos_agv_1.transforms.push_back(part_pos_agv_1);
-
-								// correct_pose = true;	// if find a part is within the tolerance
-
-								// break;
-
-							}
-
-						}
-
- 					}
-
- 				//	if (!correct_pose) {
- 				//		incorrect_part_pos_agv_1.transforms.push_back(part_pos_agv_1);
- 				//	}
-
-
- 				}
- 			}
-#endif
 
  		}
 
  	}
 
- 	// send message
- 	// ROS_INFO_STREAM("size of incorrect part vector: " << incorrect_part_pos_agv_1.transforms.size());
-
- 	// publish to topic
- 	// publish_incorrect_part(publish_rate);
 
  }
 
 
  /**
   * @breif Check if there is same part with same position in recieved_order
+  * @param test_part: the part will be compared to the received order
+  * @param currect_received_orders: the competition order that currently received
   * @return true if find same part type and same position in recieved order; else false
   */
  bool Incorrect_Pos_AGV::is_part_in_order(const geometry_msgs::TransformStamped& test_part,\
@@ -137,7 +90,7 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 
 	// ROS_INFO_STREAM("is_part_in_order invoke");
 
-	 // temp part pos
+	 // a temporary variable to store part information
 	 geometry_msgs::TransformStamped temp_part_pos;
 
 		// check if the possible_part in correct position based on order
@@ -150,15 +103,7 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 					if (is_type(test_part.child_frame_id, part.type)) {
 
 
-
-						// !! convert possible part to relative pos to agv_1
-						// auto success_convert = convert_pos_to_agv_1(test_part, agv_1_reference_frame);
-
-						//if (success_convert) {
-							//ROS_INFO_STREAM(" convert success ! ");
-						//}
-
-
+						// following Four lines to obtain the relative position using tf tree
 						tf::StampedTransform temp_transform;
 
 		 				geometry_msgs::TransformStamped temp_part;
@@ -169,10 +114,6 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 
 		 				tf::transformStampedTFToMsg(temp_transform, temp_part);
 
-
-						// if (success_convert && is_within_tolerance(part_pos_agv_1.transform, part.pose)) {
-
-							// ROS_INFO_STREAM(" correct part : " << part_pos_agv_1);
 
 		 				if (is_within_tolerance(temp_part.transform, part.pose)) {
 
@@ -187,8 +128,6 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 
 			}
 		}
-
-		// ROS_INFO_STREAM("false part : " << part_pos_agv_1);
 
 		return false;
  }
@@ -299,6 +238,7 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 
  /**
   * @brief Publish incorrect part type and its position
+  * @param freq: The rate of publishing topic
   */
  void Incorrect_Pos_AGV::publish_incorrect_part(const int& freq) {
 
@@ -316,40 +256,6 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 	 }
 
  }
-
-#if 0
- /**
-  * @breif convert position from referring logical_camera_2 to agv_1
-  * @param part_pos_logical_2; the relative position between part and logical_camera_2
-  * @return the part position referring to agv_1
-  */
-
- geometry_msgs::TransformStamped::Ptr Incorrect_Pos_AGV::convert_pos(\
-		 const geometry_msgs::TransformStamped part_pos_logical_2,\
-		 std::string reference_frame) {
-
-	 tf::StampedTransform transform_part_agv;		// pos to agv_1
-
-	 geometry_msgs::TransformStamped::Ptr part_pos_agv_1;
-
-	 std::string error_msg = nullptr;
-
-	 // check if can transform between reference frame to desired frame
-	 bool canTrans = listener.canTransform (reference_frame, part_pos_logical_2.child_frame_id, ros::Time::now());
-
-	 if (canTrans) {
-		 listener.lookupTransform(reference_frame,part_pos_logical_2.child_frame_id, ros::Time(0), transform_part_agv);
-
-		 tf::transformStampedTFToMsg(transform_part_agv, *part_pos_agv_1);
-
-		 return part_pos_agv_1;
-	 } else {
-		 return nullptr;
-	 }
-
- }
-
-#endif
 
 
 /**
@@ -401,11 +307,13 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 	 // publish incorrect part
 	 publish_incorrect_part(publish_rate);
 
-
  }
 
  /**
   * @brief function of service server to find incorrect part
+  * @param req contains bool find_incorrect_part; whether invoke service
+  * @param res contains bool success to check if has incorrect part on AGV_1
+  * 	string message to give feedback message; part_info give the incorrect part information
   */
 bool Incorrect_Pos_AGV::check_parts_pos(part_perception::Incorrect_Part::Request& req, \
 			part_perception::Incorrect_Part::Response& res) {
@@ -432,7 +340,8 @@ bool Incorrect_Pos_AGV::check_parts_pos(part_perception::Incorrect_Part::Request
 }
 
 /**
- * @breif Obtain data from rostopic /ariac/incorrect_parts_agv_1
+ * @brief Obtain data from rostopic /ariac/incorrect_parts_agv_1
+ * @param msg received message from topic /ariac/incorrect_part_agv_1
  */
 void Incorrect_Pos_AGV::server_data_call_back(const tf2_msgs::TFMessage::ConstPtr& msg) {
 
