@@ -12,6 +12,7 @@
 #include <ros/ros.h>
 #include <math.h>
 #include "tf2_msgs/TFMessage.h"
+#include "tf/transform_listener.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/Transform.h"
@@ -31,6 +32,13 @@ private:
 	const int publish_rate = 10;					// the publish rate is 10 Hz
 	tf::TransformListener listener;					// transform listener
 
+	geometry_msgs::TransformStamped part_pos_agv_1;	// part_position to agv 1
+
+	std::string agv_1_reference_frame = "agv1_load_point_frame";		// reference frame of agv_1
+
+	std::string which_order;						// order find same possible part
+	std::string which_kit;							// the kit find same possible part
+
 
 
 public:
@@ -42,9 +50,15 @@ public:
 	bool is_within_orientation_tolerance(const geometry_msgs::Quaternion& actual_orient, const geometry_msgs::Quaternion& desired_orient);
 	bool is_type(std::string part_name, std::string part_type);
 	void publish_incorrect_part(const int& freq);
-	geometry_msgs::TransformStamped convert_pos_to_agv_1(const geometry_msgs::TransformStamped part_pos_logical_2, \
+	// geometry_msgs::TransformStamped::Ptr convert_pos(const geometry_msgs::TransformStamped part_pos_logical_2, \
+			std::string reference_frame);
+
+	bool convert_pos_to_agv_1(const geometry_msgs::TransformStamped part_pos_logical_2, \
 			std::string reference_frame);
 	void incorrect_part_call_back(const tf2_msgs::TFMessage::ConstPtr& msg);
+
+	bool is_part_in_order(const geometry_msgs::TransformStamped& test_part,\
+			 const std::vector<osrf_gear::Order>& current_received_orders);
 
 };
 

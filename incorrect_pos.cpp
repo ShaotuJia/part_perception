@@ -41,9 +41,7 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 	 // clear previous data in variable
 	 incorrect_part_pos_agv_1.transforms.clear();
 
-	 geometry_msgs::TransformStamped pos_to_agv_1;
-
-
+	 // geometry_msgs::TransformStamped pos_to_agv_1;
 
  	for (auto possible_part : msg->transforms) {
 
@@ -52,30 +50,68 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
  				&& possible_part.child_frame_id != "logical_camera_2_kit_tray_1_frame" \
  				&& possible_part.child_frame_id != "logical_camera_2_agv1_frame") {
 
+//#if 0
+ 			// if cannot find same part type and position in order, push to incorrect_part_pos_agv_1 vector
+ 			if (!is_part_in_order(possible_part, received_orders)) {
 
+ 				// auto temp_part = convert_pos(possible_part, agv_1_reference_frame);
+
+ 				tf::StampedTransform temp_transform;
+
+ 				geometry_msgs::TransformStamped temp_part;
+
+ 				listener.lookupTransform(agv_1_reference_frame, possible_part.child_frame_id, ros::Time(0), temp_transform);
+
+ 				tf::transformStampedTFToMsg(temp_transform, temp_part);
+
+ 				incorrect_part_pos_agv_1.transforms.push_back(temp_part);
+
+ 			}
+
+//#endif
+
+#if 0
  			// check if the possible_part in correct position based on order
  			for (auto& order : received_orders) {
 
  				for (auto& kit : order.kits) {
+
+ 					 bool correct_pose = false;  // check if having valid pose
 
  					for (auto& part : kit.objects) {
 
 						if (is_type(possible_part.child_frame_id, part.type)) {
 
 							// !! convert possible part to relative pos to agv_1
-							pos_to_agv_1 = convert_pos_to_agv_1(possible_part.transform);
+							auto success_convert = convert_pos_to_agv_1(possible_part, agv_1_reference_frame);
 
-							if (!is_within_tolerance(pos_to_agv_1, part.pose)) {
 
-								incorrect_part_pos_agv_1.transforms.push_back(possible_part);
+							// if (success_convert && is_within_tolerance(part_pos_agv_1.transform, part.pose)) {
+							if (!is_within_tolerance(part_pos_agv_1.transform, part.pose)) {
+
+								incorrect_part_pos_agv_1.transforms.push_back(part_pos_agv_1);
+
+								// correct_pose = true;	// if find a part is within the tolerance
+
+								// break;
+
 							}
 
 						}
+
  					}
+
+ 				//	if (!correct_pose) {
+ 				//		incorrect_part_pos_agv_1.transforms.push_back(part_pos_agv_1);
+ 				//	}
+
+
  				}
  			}
+#endif
 
  		}
+
  	}
 
  	// send message
@@ -84,6 +120,72 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
  	// publish to topic
  	// publish_incorrect_part(publish_rate);
 
+ }
+
+
+ /**
+  * @breif Check if there is same part with same position in recieved_order
+  * @return true if find same part type and same position in recieved order; else false
+  */
+ bool Incorrect_Pos_AGV::is_part_in_order(const geometry_msgs::TransformStamped& test_part,\
+		 const std::vector<osrf_gear::Order>& current_received_orders) {
+
+	// ROS_INFO_STREAM("is_part_in_order invoke");
+
+	 // temp part pos
+	 geometry_msgs::TransformStamped temp_part_pos;
+
+		// check if the possible_part in correct position based on order
+		for (auto& order : current_received_orders) {
+
+			for (auto& kit : order.kits) {
+
+				for (auto& part : kit.objects) {
+
+					if (is_type(test_part.child_frame_id, part.type)) {
+
+
+
+						// !! convert possible part to relative pos to agv_1
+						// auto success_convert = convert_pos_to_agv_1(test_part, agv_1_reference_frame);
+
+						//if (success_convert) {
+							//ROS_INFO_STREAM(" convert success ! ");
+						//}
+
+
+						tf::StampedTransform temp_transform;
+
+		 				geometry_msgs::TransformStamped temp_part;
+
+		 				listener.waitForTransform(agv_1_reference_frame,test_part.child_frame_id,ros::Time(0), ros::Duration(2.0));
+
+		 				listener.lookupTransform(agv_1_reference_frame, test_part.child_frame_id, ros::Time(0), temp_transform);
+
+		 				tf::transformStampedTFToMsg(temp_transform, temp_part);
+
+
+						// if (success_convert && is_within_tolerance(part_pos_agv_1.transform, part.pose)) {
+
+							// ROS_INFO_STREAM(" correct part : " << part_pos_agv_1);
+
+		 				if (is_within_tolerance(temp_part.transform, part.pose)) {
+
+							return true;	// if find a part is within the tolerance
+
+
+						}
+
+					}
+
+				}
+
+			}
+		}
+
+		// ROS_INFO_STREAM("false part : " << part_pos_agv_1);
+
+		return false;
  }
 
 /**
@@ -116,6 +218,11 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 	 double y_diff = fabs(actual_trans.y - desired_trans.y);
 	 double z_diff = fabs(actual_trans.z - desired_trans.z);
 
+
+	 ROS_INFO_STREAM("x_diff = " << x_diff);
+	 ROS_INFO_STREAM("y_diff = " << y_diff);
+	 ROS_INFO_STREAM("z_diff = " << z_diff);
+
 	 if (x_diff < translation_tolerance && y_diff < translation_tolerance && z_diff < translation_tolerance) {
 		 return true;
 	 } else {
@@ -136,11 +243,6 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 
 	 tf::quaternionMsgToTF(actual_orient, actual_orientation);
 
-	 // actual_orientation.x = actual_orient.x;
-	 // actual_orientation.y = actual_orient.y;
-	 // actual_orientation.z = actual_orient.z;
-	 // actual_orientation.w = actual_orient.w;
-
 	 tf::Matrix3x3(actual_orientation).getRPY(Ra, Pa, Ya);	// transfer orientation from quaternion to RPY
 
 
@@ -148,10 +250,6 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 	 tf::Quaternion desired_orientation;
 	 tf::quaternionMsgToTF(desired_orient, desired_orientation);
 
-	 // desired_orientation.x = desired_orient.x;
-	 // desired_orientation.y = desired_orient.y;
-	 // desired_orientation.z = desired_orient.z;
-	 // desired_orientation.w = desired_orient.w;
 
 	 tf::Matrix3x3(desired_orientation).getRPY(Rd, Pd, Yd);
 
@@ -159,12 +257,20 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 	 double P_diff = fabs(Pa - Pd);
 	 double Y_diff = fabs(Ya - Yd);
 
+	 // !!! test !!
+	 // double Y_diff = 0;
+
+	 ROS_INFO_STREAM("R_diff = " << R_diff);
+	 ROS_INFO_STREAM("P_diff = " << P_diff);
+	 ROS_INFO_STREAM("Y_diff = " << Y_diff);
+
+
+
 	 if (R_diff < orientation_tolerance && P_diff < orientation_tolerance && Y_diff < orientation_tolerance) {
 		 return true;
 	 } else {
 		 return false;
 	 }
-
 
  }
 
@@ -196,24 +302,30 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 
 	 if (!incorrect_part_pos_agv_1.transforms.empty()) {
 
+		// ROS_INFO_STREAM("size of incorrect_part_vector = " << incorrect_part_pos_agv_1.transforms.size());
+
 		 agv_1_incorrect_part_publisher.publish(incorrect_part_pos_agv_1);
 
 		 // send message to debug
-		 ROS_INFO_STREAM("publishing incorrect part");
+		 // ROS_INFO_STREAM("publishing incorrect part");
 	 }
 
  }
+
+#if 0
  /**
   * @breif convert position from referring logical_camera_2 to agv_1
   * @param part_pos_logical_2; the relative position between part and logical_camera_2
   * @return the part position referring to agv_1
   */
 
- geometry_msgs::TransformStamped Incorrect_Pos_AGV::convert_pos_to_agv_1(const geometry_msgs::TransformStamped part_pos_logical_2, std::string reference_frame) {
+ geometry_msgs::TransformStamped::Ptr Incorrect_Pos_AGV::convert_pos(\
+		 const geometry_msgs::TransformStamped part_pos_logical_2,\
+		 std::string reference_frame) {
 
 	 tf::StampedTransform transform_part_agv;		// pos to agv_1
 
-	 geometry_msgs::TransformStamped part_pos_agv_1;
+	 geometry_msgs::TransformStamped::Ptr part_pos_agv_1;
 
 	 std::string error_msg = nullptr;
 
@@ -223,11 +335,51 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 	 if (canTrans) {
 		 listener.lookupTransform(reference_frame,part_pos_logical_2.child_frame_id, ros::Time(0), transform_part_agv);
 
-		 tf::transformStampedTFToMsg(transform_part_agv, part_pos_agv_1);
+		 tf::transformStampedTFToMsg(transform_part_agv, *part_pos_agv_1);
 
 		 return part_pos_agv_1;
 	 } else {
 		 return nullptr;
+	 }
+
+ }
+
+#endif
+
+
+/**
+ * @brief bool version of covert_pos_to_agv_1 function
+ */
+ bool Incorrect_Pos_AGV::convert_pos_to_agv_1(\
+		 const geometry_msgs::TransformStamped part_pos_logical_2,\
+		 std::string reference_frame) {
+
+	 tf::StampedTransform transform_part_agv;		// pos to agv_1
+
+	 // geometry_msgs::TransformStamped part_pos_agv_1;
+
+	 // std::string error_msg = nullptr;
+
+	 ROS_INFO_STREAM("Convert_pos_to_agv_1 invoked !");
+
+	 // wait for tf transform
+	 listener.waitForTransform(reference_frame,part_pos_logical_2.child_frame_id,ros::Time(0), ros::Duration(10.0));
+
+	 // check if can transform between reference frame to desired frame
+	 bool canTrans = listener.canTransform (reference_frame, part_pos_logical_2.child_frame_id, ros::Time::now());
+
+	 if (canTrans) {
+		 listener.lookupTransform(reference_frame,part_pos_logical_2.child_frame_id, ros::Time(0), transform_part_agv);
+
+		 tf::transformStampedTFToMsg(transform_part_agv, part_pos_agv_1);
+
+		 ROS_INFO_STREAM("Success Transform !");
+
+		 return true;
+	 } else {
+
+		 ROS_INFO_STREAM("Cannot transform !");
+		 return false;
 	 }
 
  }
