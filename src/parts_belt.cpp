@@ -14,7 +14,7 @@
 #include "tf2_msgs/TFMessage.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "std_msgs/Header.h"
-#include "include/parts_belt.h"
+#include "Conveyor_Belt/parts_belt.h"
 #include "part_perception/Inventory_Predication.h"
 #include "part_perception/TwoInts.h"
 
@@ -124,10 +124,11 @@ void Belt_Inventory:: part_detect(const tf2_msgs::TFMessage::ConstPtr& msg) {
 
 		bool on_inventory = false;		// the part whether exist on belt_inventory
 
-		//
+		// filter part referrring to frame logical_camera_1_frame and also on the convey belt(function is_on_belt())
 		if (possible_part.header.frame_id == "logical_camera_1_frame" \
 				&& possible_part.child_frame_id != "logical_camera_1_kit_tray_1_frame" \
-				&& possible_part.child_frame_id != "logical_camera_1_agv1_frame") {
+				&& possible_part.child_frame_id != "logical_camera_1_agv1_frame" \
+				&& is_on_belt(possible_part, on_belt_upper_z_limit, on_belt_lower_z_limit)) {
 			for (auto& part : belt_inventory) {;
 
 				if (possible_part.child_frame_id == part.child_frame_id) {
@@ -411,6 +412,24 @@ bool Belt_Inventory::is_type(std::string part_name, std::string part_type) {
 	} else {
 		return false;
 	}
+}
+
+/**
+ * @brief check if the part is on the belt under logical camera 1
+ * @param part The detected under logical_camera_1
+ * @param upper_bound The upper bound of a part being on belt
+ * @param lower_bound The lower bound of a part being on belt
+ * @return true if the part is on the belt; else return false
+ */
+bool Belt_Inventory::is_on_belt(const geometry_msgs::TransformStamped part, \
+		const double& upper_bound, const double& lower_bound) {
+
+	if (part.transform.translation.z < upper_bound && part.transform.translation.z > lower_bound) {
+		return true;
+	} else {
+		return false;
+	}
+
 }
 
 /**

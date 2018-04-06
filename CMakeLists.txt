@@ -145,7 +145,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
 
 ## Declare a C++ library
@@ -182,7 +182,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 #target_link_libraries(move_arm ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 #install(TARGETS move_arm DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-add_executable(detect_part main.cpp parts_belt.cpp incorrect_pos.cpp)
+add_executable(detect_part src/main.cpp src/parts_belt.cpp src/incorrect_pos.cpp)
 target_link_libraries(detect_part ${catkin_LIBRARIES})
 add_dependencies(detect_part part_perception_generate_messages_cpp)
 

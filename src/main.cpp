@@ -7,8 +7,8 @@
 
 
 #include <ros/ros.h>
-#include "include/parts_belt.h"
-#include "include/incorrect_pos.h"
+#include "Conveyor_Belt/parts_belt.h"
+#include "AGV_1/incorrect_pos.h"
 #include "part_perception/Inventory_Predication.h"
 #include "part_perception/Incorrect_Part.h"
 

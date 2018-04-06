@@ -42,6 +42,11 @@ private:
 
 	// ros::ServiceServer add_server;			// test service server
 
+	const double on_belt_upper_z_limit = 0;			// the upper boundary of checking a part on belt \
+												// its z-location referring to logcial_camera_1; 0 m
+	const double on_belt_lower_z_limit = -0.04;			// the lower boundary of checking a part on belt
+												// its z-location referring to logcial_camera_1; 0.04 m
+
 public:
 	explicit Belt_Inventory(ros::NodeHandle node);
 
@@ -69,6 +74,8 @@ public:
 
 	bool add(part_perception::TwoInts::Request  &req,
 			part_perception::TwoInts::Response &res);
+
+	bool is_on_belt(const geometry_msgs::TransformStamped part, const double& upper_bound, const double& lower_bound);
 };
 
 
