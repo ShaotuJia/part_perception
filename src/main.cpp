@@ -9,6 +9,7 @@
 #include <ros/ros.h>
 #include "Conveyor_Belt/parts_belt.h"
 #include "AGV_1/incorrect_pos.h"
+#include "Gripper/grip_part_pos.h"
 #include "part_perception/Inventory_Predication.h"
 #include "part_perception/Incorrect_Part.h"
 
@@ -51,7 +52,12 @@ int main(int argc, char **argv) {
 	ros::ServiceServer part_pos_agv_server = node.advertiseService("/ariac/check_part_pos_agv_1", \
 			&Incorrect_Pos_AGV::check_parts_pos, &incorrect_pos_agv);
 
+	// initialize Grip_Part class
+	Grip_Part grip_part_offset(node);
 
+	// subscribe /tf to check the part offset on gripper
+	ros::Subscriber grip_part_pos_sub = node.subscribe("/tf", 1000, &Grip_Part::grip_part_call_back,\
+			&grip_part_offset);
 
 
 	ros::spin();

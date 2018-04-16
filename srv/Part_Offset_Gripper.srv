@@ -1,0 +1,5 @@
+bool check_part_offset
+---
+bool success
+tf2_msgs/TFMessage parts_info
+string message

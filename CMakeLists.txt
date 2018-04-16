@@ -82,6 +82,7 @@ add_service_files(
    Inventory_Predication.srv
    TwoInts.srv
    Incorrect_Part.srv
+   Part_Offset_Gripper.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -182,7 +183,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 #target_link_libraries(move_arm ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 #install(TARGETS move_arm DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-add_executable(detect_part src/main.cpp src/parts_belt.cpp src/incorrect_pos.cpp)
+add_executable(detect_part src/main.cpp src/parts_belt.cpp src/incorrect_pos.cpp src/grip_part_pos.cpp)
 target_link_libraries(detect_part ${catkin_LIBRARIES})
 add_dependencies(detect_part part_perception_generate_messages_cpp)
 
