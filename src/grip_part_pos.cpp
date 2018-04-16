@@ -12,6 +12,7 @@
 #include "tf/transform_listener.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "Gripper/grip_part_pos.h"
+#include "part_perception/Part_Offset_Gripper.h"
 
 /**
  * @brief this constructor initialize rostopic /ariac/part_offset_gripper
@@ -19,6 +20,7 @@
 Grip_Part::Grip_Part(ros::NodeHandle node): node(node) {
 
 	part_offset_publisher = node.advertise<tf2_msgs::TFMessage>("/ariac/part_offset_gripper", 1000);
+
 }
 
 
@@ -51,6 +53,7 @@ void Grip_Part::part_detect(const tf2_msgs::TFMessage::ConstPtr& msg) {
 		}
 	}
 
+
 }
 
 /**
@@ -71,10 +74,9 @@ bool Grip_Part::is_under_camera_1(const geometry_msgs::TransformStamped part, \
 
 	if (part.transform.translation.x < upper_bound && part.transform.translation.x > lower_bound) {
 
-		// ROS_INFO_STREAM("True \n");
 		return true;
 	} else {
-		// ROS_INFO_STREAM("False \n");
+
 		return false;
 	}
 
@@ -133,4 +135,49 @@ void Grip_Part::grip_part_call_back(const tf2_msgs::TFMessage::ConstPtr& msg) {
 	publish_part_offset();
 
 }
+
+/**
+ * @brief This function creates a rosservice that returns the part position offset
+ * referring to gripper
+ * @param req; contain bool check part offset; whether invoke this service
+ * @param res; contain bool success, whether successfully detect part;
+ *  f2_msgs/TFMessage part_offset_info: the offset of part referring to gripper
+ *  string message: let user know whether successfully response part_offset_info
+ * @return bool;
+ */
+bool Grip_Part::check_part_offset(part_perception::Part_Offset_Gripper::Request& req, \
+			part_perception::Part_Offset_Gripper::Response& res) {
+
+	if (req.check_part_offset) {
+
+		if (part_offset_server_data.transforms.empty()) {
+
+			res.message = "No attached part under logical_camera_1";
+			res.success = true;
+		} else {
+			res.message = " Find attached part under logical_camera_1";
+			res.part_offset_info = part_offset_server_data;
+			res.success = false;
+		}
+
+		return true;
+	} else {
+		return false;
+	}
+
+
+	return true;
+
+}
+
+/**
+ * @brief Obtain data from rostopic /ariac/part_offset_gripper
+ * @param msg received message from topic /ariac/part_offset_gripper
+ */
+void Grip_Part::server_data_call_back(const tf2_msgs::TFMessage::ConstPtr& msg) {
+
+	part_offset_server_data = *msg;
+
+}
+
 

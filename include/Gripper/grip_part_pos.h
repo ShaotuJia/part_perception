@@ -11,6 +11,7 @@
 #include <ros/ros.h>
 #include "tf2_msgs/TFMessage.h"
 #include "geometry_msgs/TransformStamped.h"
+#include "part_perception/Part_Offset_Gripper.h"
 
 class Grip_Part {
 
@@ -26,6 +27,9 @@ private:
 	std::string gripper_frame = "vacuum_gripper_link";
 
 	tf::TransformListener listener;					// transform listener
+
+	tf2_msgs::TFMessage part_offset_server_data;				// data for /ariac/check_part_offset server
+
 public:
 
 	explicit Grip_Part(ros::NodeHandle node);			// initialize constructor
@@ -41,6 +45,11 @@ public:
 	void get_part_offset(tf2_msgs::TFMessage detect_part);
 
 	void grip_part_call_back(const tf2_msgs::TFMessage::ConstPtr& msg);
+
+	bool check_part_offset(part_perception::Part_Offset_Gripper::Request& req, \
+				part_perception::Part_Offset_Gripper::Response& res);
+
+	void server_data_call_back(const tf2_msgs::TFMessage::ConstPtr& msg);
 
 };
 

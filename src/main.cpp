@@ -1,8 +1,9 @@
-/*
- * main_belt_inventory.cpp
- *
- *  Created on: Mar 28, 2018
- *      Author: shaotu
+/**
+ * @brief This is the main function for ros node 'parts_belt'
+ * @detail this node has three functions
+ * 1. detect parts on belt and build its inventory using logical_camera_1
+ * 2. detect incorrect part on agv 1 using logical_camera_2
+ * 3. detect gripped part offset on gripper using logical_camera_1
  */
 
 
@@ -58,6 +59,28 @@ int main(int argc, char **argv) {
 	// subscribe /tf to check the part offset on gripper
 	ros::Subscriber grip_part_pos_sub = node.subscribe("/tf", 1000, &Grip_Part::grip_part_call_back,\
 			&grip_part_offset);
+
+
+	/**
+	 * @warning: ServiceServer cannot be advertised in callback functions and its class constructor
+	 * since ServiceServer is Non-static
+	 */
+
+	/**
+	 *@warning: ! after advertising topic or server, the computed data in class will be destroyed.
+	 *If directly create grip_part_offset_server, there will no data advertising to this server,
+	 *since they are already destroyed.
+	 *Thus, we use Subscriber to obtain data again from rostopic and then we advertise this ServiceSever
+	 *In this case, the obtained data is still in the class and has not been destroyed.
+	 */
+
+	// obtain server data from rostopic /ariac/part_offset_gripper
+	ros::Subscriber part_offset_server_data_sub = node.subscribe("/ariac/part_offset_gripper", 1000,\
+			&Grip_Part::server_data_call_back, &grip_part_offset);
+
+	// create ros server to check the part offset attached on girpper
+	ros::ServiceServer grip_part_offset_server = node.advertiseService("/ariac/check_part_offset", \
+			&Grip_Part::check_part_offset, &grip_part_offset);
 
 
 	ros::spin();
