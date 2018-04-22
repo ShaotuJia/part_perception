@@ -61,6 +61,9 @@ Incorrect_Pos_AGV::Incorrect_Pos_AGV(ros::NodeHandle node): node(node) {
 
 				geometry_msgs::TransformStamped temp_part;
 
+				// wait for tf frames ready
+				listener.waitForTransform(agv_1_reference_frame, possible_part.child_frame_id, ros::Time(0), ros::Duration(0.1));
+
 				listener.lookupTransform(agv_1_reference_frame, possible_part.child_frame_id, ros::Time(0), temp_transform);
 
 				tf::transformStampedTFToMsg(temp_transform, temp_part);
