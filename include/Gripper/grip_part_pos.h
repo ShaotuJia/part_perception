@@ -19,16 +19,22 @@ private:
 	ros::NodeHandle node;
 	tf2_msgs::TFMessage part_offset;			// the part offset position referring to gripper (tool0)
 	tf2_msgs::TFMessage detect_part;				// the detected part under logical camera 1
-	double check_part_upper_bound = 0.55;					// the upper bound of checking part under logical camera 1
+	double check_part_upper_bound = 0.65;					// the upper bound of checking part under logical camera 1
 	double check_part_lower_bound = 0;					// the lower bound of checking part under logical camera 1
 
 	ros::Publisher part_offset_publisher;			// publisher to publish part offset based on gripper
 
-	std::string gripper_frame = "vacuum_gripper_link";
+	const std::string gripper_frame = "tool0";
 
-	tf::TransformListener listener;					// transform listener
+	tf::TransformListener listener;					// transform listener for part_offset on gripper
+
+	tf::TransformListener logical_camera_listener;	// listener to check position of logical_camera
 
 	tf2_msgs::TFMessage part_offset_server_data;				// data for /ariac/check_part_offset server
+
+	double logical_camera_incorrect_location_tolerance = 0.01;	// the tolerance for incorrect logical_camera location referring to /world
+
+	const std::string world_frame = "world";							// the name of world frame
 
 public:
 
@@ -50,6 +56,8 @@ public:
 				part_perception::Part_Offset_Gripper::Response& res);
 
 	void server_data_call_back(const tf2_msgs::TFMessage::ConstPtr& msg);
+
+	bool is_logical_camera_1_correct_location(const double& tolerance);
 
 };
 

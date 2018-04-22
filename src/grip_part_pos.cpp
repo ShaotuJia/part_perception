@@ -180,4 +180,29 @@ void Grip_Part::server_data_call_back(const tf2_msgs::TFMessage::ConstPtr& msg) 
 
 }
 
+/**
+ * @brief check whether logical_camera_1 is in the correct position
+ * @param the tolerance of logical_camera location incorrect
+ * @return bool; true if within tolerance; otherwise false
+ */
+bool Grip_Part::is_logical_camera_1_correct_location(const double& tolerance) {
+
+	// location of logical_camera referring to /world frame
+	tf::StampedTransform relative_transform;
+
+
+	// wait for transform
+	logical_camera_listener.waitForTransform(world_frame, gripper_frame, ros::Time(0), ros::Duration(0.1));
+
+	// listen transform between transform
+	logical_camera_listener.lookupTransform(world_frame, gripper_frame, ros::Time(0), relative_transform);
+
+
+	// get pos and orientation of relative_transform
+
+	// compare to logical_camera_1 set up
+
+
+}
+
 
