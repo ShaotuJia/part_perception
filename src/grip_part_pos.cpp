@@ -11,6 +11,7 @@
 #include "tf2_msgs/TFMessage.h"
 #include "tf/transform_listener.h"
 #include "geometry_msgs/TransformStamped.h"
+#include "geometry_msgs/Pose.h"
 #include "Gripper/grip_part_pos.h"
 #include "part_perception/Part_Offset_Gripper.h"
 
@@ -100,21 +101,30 @@ void Grip_Part::publish_part_offset() {
  */
 void Grip_Part::get_part_offset(tf2_msgs::TFMessage detect_part) {
 
-	if (!detect_part.transforms.empty()) {
+	// check if the logical_camera_1 in correct location of tf
+	bool is_logical_camera_1_correct = is_logical_camera_1_correct_location(\
+			logical_camera_1_location,logical_camera_incorrect_location_translation_tolerance);
 
-		auto attached_part = detect_part.transforms[0];
+	// if logical_camera_1 is in the correct position
+	if (is_logical_camera_1_correct) {
 
-		tf::StampedTransform temp_transform;
+		if (!detect_part.transforms.empty()) {
 
-		geometry_msgs::TransformStamped temp_part;
+			auto attached_part = detect_part.transforms[0];
 
-		listener.waitForTransform(gripper_frame, attached_part.child_frame_id,ros::Time(0), ros::Duration(1));
+			tf::StampedTransform temp_transform;
 
-		listener.lookupTransform(gripper_frame, attached_part.child_frame_id, ros::Time(0), temp_transform);
+			geometry_msgs::TransformStamped temp_part;
 
-		tf::transformStampedTFToMsg(temp_transform, temp_part);	// assign value to part_offset
+			// wait for transform in 0.1 sec
+			listener.waitForTransform(gripper_frame, attached_part.child_frame_id,ros::Time(0), ros::Duration(0.1));
 
-		part_offset.transforms.push_back(temp_part);			// push back tf
+			listener.lookupTransform(gripper_frame, attached_part.child_frame_id, ros::Time(0), temp_transform);
+
+			tf::transformStampedTFToMsg(temp_transform, temp_part);	// assign value to part_offset
+
+			part_offset.transforms.push_back(temp_part);			// push back tf
+		}
 
 	}
 }
@@ -165,7 +175,6 @@ bool Grip_Part::check_part_offset(part_perception::Part_Offset_Gripper::Request&
 		return false;
 	}
 
-
 	return true;
 
 }
@@ -185,23 +194,105 @@ void Grip_Part::server_data_call_back(const tf2_msgs::TFMessage::ConstPtr& msg) 
  * @param the tolerance of logical_camera location incorrect
  * @return bool; true if within tolerance; otherwise false
  */
-bool Grip_Part::is_logical_camera_1_correct_location(const double& tolerance) {
+bool Grip_Part::is_logical_camera_1_correct_location(const geometry_msgs::Pose& config_Pose, \
+		const double& tolerance) {
 
 	// location of logical_camera referring to /world frame
 	tf::StampedTransform relative_transform;
 
 
-	// wait for transform
-	logical_camera_listener.waitForTransform(world_frame, gripper_frame, ros::Time(0), ros::Duration(0.1));
+	// wait for transform in 0.1 sec
+	logical_camera_listener.waitForTransform(world_frame, logical_camera_1_frame, ros::Time(0), ros::Duration(0.1));
 
 	// listen transform between transform
-	logical_camera_listener.lookupTransform(world_frame, gripper_frame, ros::Time(0), relative_transform);
+	logical_camera_listener.lookupTransform(world_frame, logical_camera_1_frame, ros::Time(0), relative_transform);
 
 
-	// get pos and orientation of relative_transform
+	// compare to logical_camera_1 to the configuration position
+	if (is_desired_Pos(config_Pose, relative_transform, tolerance)) {
 
-	// compare to logical_camera_1 set up
+		return true;
+	} else {
+		return false;
+	}
 
+
+}
+
+/**
+ * @brief check whether in actual Pos within the translation_tolerance
+ * @param desired_Pos; the desired Pos
+ * @param actual_Pos; the actual Pos
+ * @param translation_tolerance;  the tolerance in translation
+ * @return true if every actual value is within the tolerance; else return false
+ * @warning: we only check the tolerance in translation; No check for orientation
+ */
+bool Grip_Part::is_desired_Pos(const geometry_msgs::Pose& desired_Pos, const tf::StampedTransform& actual_Pos, \
+			const double& translation_tolerance) {
+
+	// get coordinate of actual location
+	double actual_x = actual_Pos.getOrigin().x();
+	double actual_y = actual_Pos.getOrigin().y();
+	double actual_z = actual_Pos.getOrigin().z();
+
+	// get coordinate of desired location
+	double desired_x = desired_Pos.position.x;
+	double desired_y = desired_Pos.position.y;
+	double desired_z = desired_Pos.position.z;
+
+	// return true if every actual value is within the tolerance; else return false
+	if (is_within_tolerance(desired_x, actual_x, translation_tolerance) \
+			&& is_within_tolerance(desired_y, actual_y, translation_tolerance) \
+			&& is_within_tolerance(desired_z, actual_z, translation_tolerance)) {
+
+		return true;
+	} else {
+		return false;
+	}
+
+}
+
+/**
+ * @brief check whether the actual_value is within the tolerance of configure value
+ * @param config_value;	 the value we configured in configure file
+ * @param actual_value; the actual value we get in simulation
+ * @param tolerance; the tolerance that we can accept
+ * @return bool; true if within the tolerance; else, false;
+ */
+bool Grip_Part::is_within_tolerance(const double& desired_value, const double& actual_value, \
+		const double& tolerance) {
+
+	// the difference between config_value and actual_value in absolute value
+	double diff = std::abs(desired_value - actual_value);
+
+	// check whether the diff smaller than the tolerance
+	if (diff < tolerance) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+
+/**
+ * @brief set up the location of logical_camera_1 referring to world
+ * @param x;
+ * @param y;
+ * @param z;
+ */
+geometry_msgs::Pose Grip_Part::set_up_pose(const double& x, const double& y, const double& z) {
+
+	// initialize location in type geometry_msgs::Pose
+	geometry_msgs::Pose location;
+
+	// assign value for logical_camera_1_location position
+	location.position.x = x;
+	location.position.y = y;
+	location.position.z = z;
+
+	// return location;
+	return location;
 
 }
 

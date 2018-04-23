@@ -11,6 +11,7 @@
 #include <ros/ros.h>
 #include "tf2_msgs/TFMessage.h"
 #include "geometry_msgs/TransformStamped.h"
+#include "geometry_msgs/Pose.h"
 #include "part_perception/Part_Offset_Gripper.h"
 
 class Grip_Part {
@@ -24,7 +25,9 @@ private:
 
 	ros::Publisher part_offset_publisher;			// publisher to publish part offset based on gripper
 
-	const std::string gripper_frame = "tool0";
+	const std::string gripper_frame = "tool0";		// tf name for gripper_frame
+
+	const std::string logical_camera_1_frame = "logical_camera_1_frame";	// tf frame name for logical_camera_1
 
 	tf::TransformListener listener;					// transform listener for part_offset on gripper
 
@@ -32,9 +35,14 @@ private:
 
 	tf2_msgs::TFMessage part_offset_server_data;				// data for /ariac/check_part_offset server
 
-	double logical_camera_incorrect_location_tolerance = 0.01;	// the tolerance for incorrect logical_camera location referring to /world
+	double logical_camera_incorrect_location_translation_tolerance = 0.01;	// the tolerance for incorrect logical_camera location referring to /world
 
 	const std::string world_frame = "world";							// the name of world frame
+
+	geometry_msgs::Pose logical_camera_1_location = \
+			set_up_pose(1.24, 2.2, 1.65);				// location of logical_camera_1
+
+
 
 public:
 
@@ -57,7 +65,16 @@ public:
 
 	void server_data_call_back(const tf2_msgs::TFMessage::ConstPtr& msg);
 
-	bool is_logical_camera_1_correct_location(const double& tolerance);
+	bool is_logical_camera_1_correct_location(const geometry_msgs::Pose& config_Pose, \
+			const double& tolerance);
+
+	geometry_msgs::Pose set_up_pose(const double& x, const double& y, const double& z);
+
+	bool is_within_tolerance(const double& desired_value, const double& actual_value, \
+			const double& tolerance);
+
+	bool is_desired_Pos(const geometry_msgs::Pose& desired_Pos, const tf::StampedTransform& actual_Pos, \
+			const double& translation_tolerance);
 
 };
 
