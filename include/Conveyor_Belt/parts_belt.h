@@ -42,9 +42,9 @@ private:
 
 	// ros::ServiceServer add_server;			// test service server
 
-	const double on_belt_upper_z_limit = 0;			// the upper boundary of checking a part on belt \
+	const double on_belt_upper_z_limit = -0.025;			// the upper boundary of checking a part on belt \
 												// its z-location referring to logcial_camera_1; 0 m
-	const double on_belt_lower_z_limit = -0.04;			// the lower boundary of checking a part on belt
+	const double on_belt_lower_z_limit = -0.035;			// the lower boundary of checking a part on belt
 												// its z-location referring to logcial_camera_1; 0.04 m
 
 public:
