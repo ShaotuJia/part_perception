@@ -25,7 +25,7 @@ private:
 
 	ros::Publisher part_offset_publisher;			// publisher to publish part offset based on gripper
 
-	const std::string gripper_frame = "tool0";		// tf name for gripper_frame
+	const std::string gripper_frame = "vacuum_gripper_link";		// tf name for gripper_frame
 
 	const std::string logical_camera_1_frame = "logical_camera_1_frame";	// tf frame name for logical_camera_1
 
