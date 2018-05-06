@@ -424,7 +424,10 @@ bool Belt_Inventory::is_type(std::string part_name, std::string part_type) {
 bool Belt_Inventory::is_on_belt(const geometry_msgs::TransformStamped part, \
 		const double& upper_bound, const double& lower_bound) {
 
-	if (part.transform.translation.z < upper_bound && part.transform.translation.z > lower_bound) {
+	ROS_INFO_STREAM("!! invoke is_on_belt function");
+
+	if ((part.transform.translation.z < upper_bound) && (part.transform.translation.z > lower_bound)) {
+		ROS_INFO_STREAM("detect_part z = " << part.transform.translation.z);
 		return true;
 	} else {
 		return false;
