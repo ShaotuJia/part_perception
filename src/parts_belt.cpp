@@ -581,14 +581,16 @@ bool Belt_Inventory::is_on_gripper(geometry_msgs::TransformStamped part, std::st
 	double z_diff = fabs(relative_transform.getOrigin().getZ());
 
 
-	ROS_INFO_STREAM(part.child_frame_id <<" x_diff = " << x_diff);
-	ROS_INFO_STREAM(part.child_frame_id << "y_diff = " << y_diff);
-	ROS_INFO_STREAM(part.child_frame_id << "z_diff = " << z_diff);
+
 
 	// compare to logical_camera_1 to the configuration position
 	if ((x_diff < tolerance) && (y_diff < tolerance) && (z_diff < tolerance)) {
 
 		ROS_INFO_STREAM("This part is attached on gripper");
+
+		ROS_INFO_STREAM(part.child_frame_id <<" x_diff = " << x_diff);
+		ROS_INFO_STREAM(part.child_frame_id << " y_diff = " << y_diff);
+		ROS_INFO_STREAM(part.child_frame_id << " z_diff = " << z_diff);
 
 		return true;
 	} else {
