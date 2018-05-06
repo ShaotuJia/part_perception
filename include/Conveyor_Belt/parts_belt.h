@@ -10,10 +10,12 @@
 #include <ros/ros.h>
 #include "tf2_msgs/TFMessage.h"
 #include "geometry_msgs/TransformStamped.h"
+#include "geometry_msgs/Pose.h"
 #include "std_msgs/Header.h"
 #include "std_msgs/Time.h"
 #include "part_perception/Inventory_Predication.h"
 #include "part_perception/TwoInts.h"
+#include "tf/transform_listener.h"
 
 
 
@@ -47,6 +49,23 @@ private:
 	const double on_belt_lower_z_limit = -0.033;			// the lower boundary of checking a part on belt
 												// its z-location referring to logcial_camera_1; 0.04 m
 
+	double logical_camera_incorrect_location_translation_tolerance = 0.01;	// the tolerance for incorrect logical_camera location referring to /world
+
+	const std::string world_frame = "world";							// the name of world frame
+
+	geometry_msgs::Pose logical_camera_1_location = \
+			set_up_pose(1.24, 2.2, 1.65);				// location of logical_camera_1
+
+	const std::string logical_camera_1_frame = "logical_camera_1_frame";	// tf frame name for logical_camera_1
+
+	tf::TransformListener logical_camera_listener;	// listener to check position of logical_camera
+
+	const std::string gripper_frame = "vacuum_gripper_link";		// tf name for gripper_frame
+
+	const double gripper_tol = 0.05;								// the diff between part frame and gripper frame
+
+	tf::TransformListener gripper_listener;							// the listener to listen diff between part and gripper
+
 public:
 	explicit Belt_Inventory(ros::NodeHandle node);
 
@@ -76,6 +95,20 @@ public:
 			part_perception::TwoInts::Response &res);
 
 	bool is_on_belt(const geometry_msgs::TransformStamped part, const double& upper_bound, const double& lower_bound);
+
+	bool is_logical_camera_1_correct_location(const geometry_msgs::Pose& config_Pose, \
+		const double& tolerance);
+
+	geometry_msgs::Pose set_up_pose(const double& x, const double& y, const double& z); 
+
+	bool is_within_tolerance(const double& desired_value, const double& actual_value, \
+			const double& tolerance);
+
+	bool is_desired_Pos(const geometry_msgs::Pose& desired_Pos, const tf::StampedTransform& actual_Pos, \
+			const double& translation_tolerance);
+
+	bool is_on_gripper(geometry_msgs::TransformStamped part, std::string gripper_frame, const double& tolerance);
+
 };
 
 

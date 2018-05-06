@@ -13,6 +13,7 @@
 #include <math.h>
 #include "tf2_msgs/TFMessage.h"
 #include "geometry_msgs/TransformStamped.h"
+#include "geometry_msgs/Pose.h"
 #include "std_msgs/Header.h"
 #include "Conveyor_Belt/parts_belt.h"
 #include "part_perception/Inventory_Predication.h"
@@ -124,12 +125,18 @@ void Belt_Inventory:: part_detect(const tf2_msgs::TFMessage::ConstPtr& msg) {
 
 		bool on_inventory = false;		// the part whether exist on belt_inventory
 
+			// check if the logical_camera_1 in correct location of tf
+		bool is_logical_camera_1_correct = is_logical_camera_1_correct_location(\
+			logical_camera_1_location,logical_camera_incorrect_location_translation_tolerance);
+
 		// filter part referrring to frame logical_camera_1_frame and also on the convey belt(function is_on_belt())
 		if (possible_part.header.frame_id == "logical_camera_1_frame" \
 				&& possible_part.child_frame_id != "logical_camera_1_kit_tray_1_frame" \
 				&& possible_part.child_frame_id != "logical_camera_1_agv1_frame" \
-				&& is_on_belt(possible_part, on_belt_upper_z_limit, on_belt_lower_z_limit)) {
-			for (auto& part : belt_inventory) {;
+				&& is_on_belt(possible_part, on_belt_upper_z_limit, on_belt_lower_z_limit)
+				&& is_logical_camera_1_correct
+				&& !(is_on_gripper(possible_part, gripper_frame, gripper_tol))) {
+			for (auto& part : belt_inventory) {
 
 				if (possible_part.child_frame_id == part.child_frame_id) {
 					on_inventory = true;
@@ -445,4 +452,148 @@ bool Belt_Inventory::add(part_perception::TwoInts::Request  &req,
   ROS_INFO("request: x=%ld, y=%ld", (long int)req.a, (long int)req.b);
   ROS_INFO("  sending back response: [%ld]", (long int)res.sum);
   return true;
+}
+
+/**
+ * @brief check whether logical_camera_1 is in the correct position
+ * @param the tolerance of logical_camera location incorrect
+ * @return bool; true if within tolerance; otherwise false
+ */
+bool Belt_Inventory::is_logical_camera_1_correct_location(const geometry_msgs::Pose& config_Pose, \
+		const double& tolerance) {
+
+	// location of logical_camera referring to /world frame
+	tf::StampedTransform relative_transform;
+
+
+	// wait for transform in 0.1 sec
+	logical_camera_listener.waitForTransform(world_frame, logical_camera_1_frame, ros::Time(0), ros::Duration(0.1));
+
+	// listen transform between transform
+	logical_camera_listener.lookupTransform(world_frame, logical_camera_1_frame, ros::Time(0), relative_transform);
+
+
+	// compare to logical_camera_1 to the configuration position
+	if (is_desired_Pos(config_Pose, relative_transform, tolerance)) {
+
+		return true;
+	} else {
+		return false;
+	}
+
+
+}
+
+
+/**
+ * @brief set up the location of logical_camera_1 referring to world
+ * @param x;
+ * @param y;
+ * @param z;
+ */
+geometry_msgs::Pose Belt_Inventory::set_up_pose(const double& x, const double& y, const double& z) {
+
+	// initialize location in type geometry_msgs::Pose
+	geometry_msgs::Pose location;
+
+	// assign value for logical_camera_1_location position
+	location.position.x = x;
+	location.position.y = y;
+	location.position.z = z;
+
+	// return location;
+	return location;
+
+}
+
+/**
+ * @brief check whether in actual Pos within the translation_tolerance
+ * @param desired_Pos; the desired Pos
+ * @param actual_Pos; the actual Pos
+ * @param translation_tolerance;  the tolerance in translation
+ * @return true if every actual value is within the tolerance; else return false
+ * @warning: we only check the tolerance in translation; No check for orientation
+ */
+bool Belt_Inventory::is_desired_Pos(const geometry_msgs::Pose& desired_Pos, const tf::StampedTransform& actual_Pos, \
+			const double& translation_tolerance) {
+
+	// get coordinate of actual location
+	double actual_x = actual_Pos.getOrigin().x();
+	double actual_y = actual_Pos.getOrigin().y();
+	double actual_z = actual_Pos.getOrigin().z();
+
+	// get coordinate of desired location
+	double desired_x = desired_Pos.position.x;
+	double desired_y = desired_Pos.position.y;
+	double desired_z = desired_Pos.position.z;
+
+	// return true if every actual value is within the tolerance; else return false
+	if (is_within_tolerance(desired_x, actual_x, translation_tolerance) \
+			&& is_within_tolerance(desired_y, actual_y, translation_tolerance) \
+			&& is_within_tolerance(desired_z, actual_z, translation_tolerance)) {
+
+		return true;
+	} else {
+		return false;
+	}
+
+}
+
+/**
+ * @brief check whether the actual_value is within the tolerance of configure value
+ * @param config_value;	 the value we configured in configure file
+ * @param actual_value; the actual value we get in simulation
+ * @param tolerance; the tolerance that we can accept
+ * @return bool; true if within the tolerance; else, false;
+ */
+bool Belt_Inventory::is_within_tolerance(const double& desired_value, const double& actual_value, \
+		const double& tolerance) {
+
+	// the difference between config_value and actual_value in absolute value
+	double diff = std::abs(desired_value - actual_value);
+
+	// check whether the diff smaller than the tolerance
+	if (diff < tolerance) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * @brief check whether part is attached to gripper
+ */
+bool Belt_Inventory::is_on_gripper(geometry_msgs::TransformStamped part, std::string gripper_frame, const double& tolerance) {
+
+		// location of logical_camera referring to /world frame
+	tf::StampedTransform relative_transform;
+
+
+	// wait for transform in 0.1 sec
+	logical_camera_listener.waitForTransform(gripper_frame, part.child_frame_id, ros::Time(0), ros::Duration(0.5));
+
+	// listen transform between transform
+	logical_camera_listener.lookupTransform(gripper_frame, part.child_frame_id, ros::Time(0), relative_transform);
+
+
+	double x_diff = fabs(relative_transform.getOrigin().getX());
+	double y_diff = fabs(relative_transform.getOrigin().getY());
+	double z_diff = fabs(relative_transform.getOrigin().getZ());
+
+
+	ROS_INFO_STREAM(part.child_frame_id <<" x_diff = " << x_diff);
+	ROS_INFO_STREAM(part.child_frame_id << "y_diff = " << y_diff);
+	ROS_INFO_STREAM(part.child_frame_id << "z_diff = " << z_diff);
+
+	// compare to logical_camera_1 to the configuration position
+	if ((x_diff < tolerance) && (y_diff < tolerance) && (z_diff < tolerance)) {
+
+		ROS_INFO_STREAM("This part is attached on gripper");
+
+		return true;
+	} else {
+
+		return false;
+	}
+
 }
