@@ -1,6 +1,6 @@
-string part_type
-time future_time
+bool find_incorrect_part
 ---
 bool success
 tf2_msgs/TFMessage parts_info
 string message
+

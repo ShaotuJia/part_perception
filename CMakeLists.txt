@@ -24,6 +24,7 @@ find_package(catkin REQUIRED
     geometric_shapes
     moveit_visual_tools
     std_msgs
+    tf
     tf2
     geometry_msgs
     message_generation
@@ -77,7 +78,11 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 ## Generate services in the 'srv' folder
 add_service_files(
    DIRECTORY srv
-   FILES Inventory_Predication.srv
+   FILES
+   Inventory_Predication.srv
+   TwoInts.srv
+   Incorrect_Part.srv
+   Part_Offset_Gripper.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -141,7 +146,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
 
 ## Declare a C++ library
@@ -178,9 +183,9 @@ link_directories(${catkin_LIBRARY_DIRS})
 #target_link_libraries(move_arm ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 #install(TARGETS move_arm DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-add_executable(belt_inventory main.cpp parts_belt.cpp)
-target_link_libraries(belt_inventory ${catkin_LIBRARIES})
-add_dependencies(belt_inventory part_perception_generate_messages_cpp)
+add_executable(detect_part src/main.cpp src/parts_belt.cpp src/incorrect_pos.cpp src/grip_part_pos.cpp)
+target_link_libraries(detect_part ${catkin_LIBRARIES})
+add_dependencies(detect_part part_perception_generate_messages_cpp)
 
 #############
 ## Install ##
