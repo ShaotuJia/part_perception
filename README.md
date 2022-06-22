@@ -1,6 +1,6 @@
 # part_perception package in ARIAC
-The video of last qualifier, 3b has been uploaded to youku. 
-Please click here: [youku](https://v.youku.com/v_show/id_XMzczODQ5MDA2OA==.html?spm=a2h3j.8428770.3416059.1)
+The video of last qualifier, 3b has been uploaded to youtube. 
+Please click here: [ARIAC Practice 2018](https://youtu.be/JhPkP1iMviw)
 
 ## 0. Brief:
 This repository contains the package implemented by Shaotu Jia. The whole project contains three packages, other packages are implemented by Yuxin Ma and Zejiang Zeng.  
